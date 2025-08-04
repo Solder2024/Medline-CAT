@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAT-Medline - Système de gestion de textes</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --accent: #4cc9f0;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --info: #3498db;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+            --night-bg: #121826;
+            --night-card: #1e293b;
+            --night-text: #e2e8f0;
+            --gradient-start: #4361ee;
+            --gradient-end: #3a0ca3;
+            --favorite: #FFD700;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.3s, color 0.3s, transform 0.3s, box-shadow 0.3s;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--dark);
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+        
+        body.night-mode {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--night-text);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            padding: 20px 25px;
+            border-radius: 18px;
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.3);
+            margin-bottom: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transform: translateY(0);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        header:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(67, 97, 238, 0.4);
+        }
+        
+        body.night-mode header {
+            background: linear-gradient(90deg, #2a3a9e, #1c2670);
+        }
+        
+        header::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+            z-index: 0;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 2;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+        }
+        
+        h1 i {
+            background: rgba(255, 255, 255, 0.2);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            backdrop-filter: blur(5px);
+        }
+        
+        .subtitle {
+            font-size: 1.05rem;
+            opacity: 0.9;
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin: 25px 0;
+            background: white;
+            border-radius: 50px;
+            padding: 5px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+            max-width: 550px;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid var(--light-gray);
+        }
+        
+        body.night-mode .tabs {
+            background: var(--night-card);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            border-color: #2d3748;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            color: var(--gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        body.night-mode .tab-btn {
+            color: var(--night-text);
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.35);
+        }
+        
+        .content-section {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 25px;
+            animation: fadeIn 0.5s ease;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        body.night-mode .content-section {
+            background: var(--night-card);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        .section-title {
+            font-size: 1.7rem;
+            color: var(--primary);
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-gray);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+        
+        body.night-mode .section-title {
+            color: var(--accent);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section-title i {
+            background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+            font-size: 0.95rem;
+        }
+        
+        body.night-mode label {
+            color: var(--night-text);
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid var(--light-gray);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        body.night-mode input, 
+        body.night-mode textarea {
+            background: #1a2435;
+            border-color: #2d3748;
+            color: var(--night-text);
+        }
+        
+        input:focus, textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.15);
+        }
+        
+        textarea {
+            min-height: 160px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            padding: 14px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-primary::after {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
+            transform: rotate(30deg);
+            transition: transform 0.5s ease;
+            opacity: 0;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.4);
+        }
+        
+        .btn-primary:hover::after {
+            opacity: 1;
+            transform: rotate(30deg) translate(10%, 10%);
+        }
+        
+        .search-container {
+            display: flex;
+            margin-bottom: 25px;
+            background: white;
+            border-radius: 50px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--light-gray);
+        }
+        
+        body.night-mode .search-container {
+            background: #1a2435;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            border-color: #2d3748;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 15px 22px;
+            border: none;
+            font-size: 0.95rem;
+            background: transparent;
+        }
+        
+        body.night-mode .search-input {
+            color: var(--night-text);
+        }
+        
+        .search-input:focus {
+            outline: none;
+        }
+        
+        .search-btn {
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            border: none;
+            padding: 0 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-btn:hover {
+            background: linear-gradient(90deg, #3a56e0, #2f0a9e);
+        }
+        
+        .texts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        
+        .text-card {
+            background: white;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.07);
+            transition: all 0.3s ease;
+            border: 1px solid var(--light-gray);
+            position: relative;
+        }
+        
+        body.night-mode .text-card {
+            background: var(--night-card);
+            border-color: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .text-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+        }
+        
+        body.night-mode .text-card:hover {
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+        }
+        
+        .card-header {
+            background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+            color: white;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        body.night-mode .card-header {
+            background: linear-gradient(90deg, #2a3a9e, #1c2670);
+        }
+        
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            flex: 1;
+        }
+        
+        .card-date {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            text-align: right;
+            min-width: 90px;
+        }
+        
+        .card-body {
+            padding: 16px;
+            display: none;
+        }
+        
+        .card-text {
+            line-height: 1.6;
+            margin-bottom: 12px;
+            color: var(--dark);
+        }
+        
+        body.night-mode .card-text {
+            color: var(--night-text);
+        }
+        
+        .card-actions {
+            padding: 12px 16px;
+            background: var(--light);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        body.night-mode .card-actions {
+            background: #1a2435;
+        }
+        
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border: 1px solid var(--light-gray);
+            color: var(--gray);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        body.night-mode .btn-icon {
+            background: #1a2435;
+            border-color: #2d3748;
+            color: var(--night-text);
+        }
+        
+        .btn-icon:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-icon.favorite {
+            color: var(--favorite);
+        }
+        
+        .btn-icon.favorite:hover {
+            color: var(--favorite);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            background: var(--light);
+            border-radius: 18px;
+            margin-top: 15px;
+            grid-column: 1 / -1;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+        }
+        
+        body.night-mode .empty-state {
+            background: rgba(30, 41, 59, 0.5);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--info);
+            margin-bottom: 20px;
+            opacity: 0.7;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.7rem;
+            color: var(--gray);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        body.night-mode .empty-state h3 {
+            color: var(--night-text);
+        }
+        
+        .empty-state p {
+            color: var(--gray);
+            max-width: 500px;
+            margin: 0 auto;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+        
+        body.night-mode .empty-state p {
+            color: #94a3b8;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateX(150%);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(10px);
+            background: rgba(46, 204, 113, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: rgba(46, 204, 113, 0.9);
+        }
+        
+        .notification.error {
+            background: rgba(231, 76, 60, 0.9);
+        }
+        
+        .text-detail {
+            background: white;
+            border-radius: 18px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+            margin-top: 20px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        body.night-mode .text-detail {
+            background: var(--night-card);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+        
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-gray);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        body.night-mode .detail-header {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .detail-title {
+            font-size: 1.9rem;
+            color: var(--primary);
+            font-weight: 700;
+            line-height: 1.3;
+        }
+        
+        body.night-mode .detail-title {
+            color: var(--accent);
+        }
+        
+        .detail-date {
+            color: var(--gray);
+            font-size: 0.95rem;
+            background: var(--light);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        body.night-mode .detail-date {
+            color: #94a3b8;
+            background: rgba(30, 41, 59, 0.7);
+        }
+        
+        .detail-content {
+            line-height: 1.7;
+            font-size: 1rem;
+            color: var(--dark);
+            padding: 8px 0;
+        }
+        
+        body.night-mode .detail-content {
+            color: var(--night-text);
+        }
+        
+        .detail-content p {
+            margin-bottom: 15px;
+        }
+        
+        .back-btn {
+            background: var(--light);
+            color: var(--dark);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        body.night-mode .back-btn {
+            background: rgba(30, 41, 59, 0.7);
+            color: var(--night-text);
+        }
+        
+        .back-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(67, 97, 238, 0.3);
+        }
+        
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.4rem;
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(15deg);
+        }
+        
+        .favorites-filter {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .favorites-filter label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+        
+        .favorites-filter input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            accent-color: var(--primary);
+        }
+        
+        body.night-mode .favorites-filter label {
+            color: var(--night-text);
+        }
+        
+        @media (max-width: 768px) {
+            .tabs {
+                max-width: 100%;
+            }
+            
+            .texts-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .theme-toggle {
+                top: 12px;
+                right: 12px;
+                width: 40px;
+                height: 40px;
+                font-size: 1.1rem;
+            }
+            
+            header {
+                padding: 18px 15px;
+            }
+            
+            h1 {
+                font-size: 1.9rem;
+            }
+            
+            .section-title {
+                font-size: 1.5rem;
+            }
+            
+            .content-section {
+                padding: 20px;
+            }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 8px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 8px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+        
+        body.night-mode ::-webkit-scrollbar-track {
+            background: #1a2435;
+        }
+        
+        body.night-mode ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+            <div class="header-content">
+                <h1><i class="fas fa-book-medical"></i>CAT-Medline</h1>
+                <p class="subtitle">Système de gestion des conduites à tenir médicales</p>
+            </div>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="admin">
+                <i class="fas fa-user-shield"></i> Interface Admin
+            </button>
+            <button class="tab-btn" data-tab="user">
+                <i class="fas fa-user"></i> Interface Utilisateur
+            </button>
+        </div>
+        
+        <!-- Admin Section -->
+        <section id="admin" class="content-section active">
+            <h2 class="section-title"><i class="fas fa-plus-circle"></i> Ajouter une nouvelle conduite</h2>
+            
+            <form id="addTextForm">
+                <div class="form-group">
+                    <label for="textTitle">Titre de la conduite</label>
+                    <input type="text" id="textTitle" placeholder="Ex: Prise en charge de l'infarctus du myocarde" required>
+                    <small id="titleError" style="color: var(--danger); display: none; margin-top: 5px;">Ce titre existe déjà!</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="textContent">Description détaillée</label>
+                    <textarea id="textContent" placeholder="Décrivez la conduite à tenir étape par étape..." required></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> Ajouter la conduite
+                </button>
+            </form>
+            
+            <h2 class="section-title" style="margin-top: 35px;">
+                <i class="fas fa-clipboard-list"></i> Conduites disponibles
+            </h2>
+            
+            <div class="search-container">
+                <input type="text" class="search-input" id="adminSearch" placeholder="Rechercher une conduite...">
+                <button class="search-btn" id="adminSearchBtn">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            
+            <div id="adminTextsList" class="texts-container">
+                <!-- Texts will be loaded here dynamically -->
+            </div>
+        </section>
+        
+        <!-- User Section -->
+        <section id="user" class="content-section">
+            <h2 class="section-title"><i class="fas fa-book-medical"></i> Conduites médicales</h2>
+            
+            <div class="favorites-filter">
+                <label>
+                    <input type="checkbox" id="showFavoritesOnly">
+                    Afficher uniquement les favoris
+                </label>
+                <div style="flex: 1;"></div>
+                <div class="search-container">
+                    <input type="text" class="search-input" id="userSearch" placeholder="Rechercher une conduite...">
+                    <button class="search-btn" id="searchBtn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="userTextsList" class="texts-container">
+                <!-- Texts will be loaded here dynamically -->
+            </div>
+            
+            <div id="textDetail" class="text-detail">
+                <div class="detail-header">
+                    <h2 class="detail-title" id="detailTitle">Titre de la conduite</h2>
+                    <div class="detail-date" id="detailDate">1 janvier 2023</div>
+                </div>
+                <div class="detail-content" id="detailContent">
+                    Le contenu de la conduite apparaîtra ici...
+                </div>
+                <button class="back-btn" id="backToList">
+                    <i class="fas fa-arrow-left"></i> Retour à la liste
+                </button>
+            </div>
+        </section>
+    </div>
+    
+    <div id="notification" class="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationText">Opération réussie!</span>
+    </div>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA-paJLvC4rAvwkSnX7ZdNBcSR7O_4hS2g",
+            authDomain: "medclone-df5a4.firebaseapp.com",
+            databaseURL: "https://medclone-df5a4-default-rtdb.firebaseio.com",
+            projectId: "medclone-df5a4",
+            storageBucket: "medclone-df5a4.appspot.com",
+            messagingSenderId: "780675678855",
+            appId: "1:780675678855:web:9813294ee9129476022e22",
+            measurementId: "G-2XWEPGYJB3"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // DOM Elements
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const contentSections = document.querySelectorAll('.content-section');
+        const addTextForm = document.getElementById('addTextForm');
+        const adminTextsList = document.getElementById('adminTextsList');
+        const userTextsList = document.getElementById('userTextsList');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
+        const textDetail = document.getElementById('textDetail');
+        const detailTitle = document.getElementById('detailTitle');
+        const detailDate = document.getElementById('detailDate');
+        const detailContent = document.getElementById('detailContent');
+        const backToList = document.getElementById('backToList');
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        const showFavoritesOnly = document.getElementById('showFavoritesOnly');
+        const titleError = document.getElementById('titleError');
+        const textTitleInput = document.getElementById('textTitle');
+        
+        // Tab switching functionality
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all tabs and sections
+                tabBtns.forEach(b => b.classList.remove('active'));
+                contentSections.forEach(section => section.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding section
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+                
+                // Refresh the user texts when switching to user tab
+                if (btn.dataset.tab === 'user') {
+                    loadUserTexts();
+                }
+            });
+        });
+        
+        // Theme toggle
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('night-mode');
+            const isNightMode = body.classList.contains('night-mode');
+            themeToggle.innerHTML = isNightMode ? 
+                '<i class="fas fa-sun"></i>' : 
+                '<i class="fas fa-moon"></i>';
+            
+            // Save theme preference
+            localStorage.setItem('theme', isNightMode ? 'night' : 'day');
+        });
+        
+        // Check saved theme
+        if (localStorage.getItem('theme') === 'night') {
+            body.classList.add('night-mode');
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        }
+        
+        // Show notification function
+        function showNotification(message, isSuccess = true) {
+            notificationText.textContent = message;
+            notification.className = 'notification ' + (isSuccess ? 'success' : 'error');
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Check for duplicate title
+        function checkDuplicateTitle(title) {
+            const textsRef = database.ref('texts');
+            return textsRef.once('value').then(snapshot => {
+                let duplicateFound = false;
+                
+                snapshot.forEach(childSnapshot => {
+                    const existingTitle = childSnapshot.val().title;
+                    if (existingTitle.toLowerCase() === title.toLowerCase()) {
+                        duplicateFound = true;
+                    }
+                });
+                
+                return duplicateFound;
+            });
+        }
+        
+        // Add new text with duplicate check
+        addTextForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('textTitle').value.trim();
+            const content = document.getElementById('textContent').value.trim();
+            
+            if (!title || !content) {
+                showNotification('Veuillez remplir tous les champs', false);
+                return;
+            }
+            
+            // Check for duplicate title
+            const isDuplicate = await checkDuplicateTitle(title);
+            
+            if (isDuplicate) {
+                titleError.style.display = 'block';
+                textTitleInput.style.borderColor = 'var(--danger)';
+                showNotification('Une conduite avec ce titre existe déjà!', false);
+                return;
+            } else {
+                titleError.style.display = 'none';
+                textTitleInput.style.borderColor = '';
+            }
+            
+            // Generate a unique ID for the text
+            const textsRef = database.ref('texts');
+            const newTextRef = textsRef.push();
+            
+            // Save text to Firebase
+            newTextRef.set({
+                title: title,
+                content: content,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            })
+            .then(() => {
+                showNotification('Conduite ajoutée avec succès!');
+                addTextForm.reset();
+            })
+            .catch((error) => {
+                showNotification('Erreur lors de l\'ajout: ' + error.message, false);
+            });
+        });
+        
+        // Clear duplicate warning on input
+        textTitleInput.addEventListener('input', () => {
+            titleError.style.display = 'none';
+            textTitleInput.style.borderColor = '';
+        });
+        
+        // Toggle favorite status
+        function toggleFavorite(textId) {
+            const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+            const index = favorites.indexOf(textId);
+            
+            if (index > -1) {
+                favorites.splice(index, 1);
+            } else {
+                favorites.push(textId);
+            }
+            
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+            return index === -1; // Return true if added to favorites
+        }
+        
+        // Load texts for admin
+        function loadAdminTexts() {
+            const textsRef = database.ref('texts');
+            
+            textsRef.on('value', (snapshot) => {
+                adminTextsList.innerHTML = '';
+                
+                if (!snapshot.exists()) {
+                    adminTextsList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-file-medical"></i>
+                            <h3>Aucune conduite disponible</h3>
+                            <p>Ajoutez de nouvelles conduites en utilisant le formulaire ci-dessus</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const texts = [];
+                snapshot.forEach((childSnapshot) => {
+                    const text = childSnapshot.val();
+                    text.id = childSnapshot.key;
+                    texts.push(text);
+                });
+                
+                // Apply sorting by newest first
+                texts.sort((a, b) => b.timestamp - a.timestamp);
+                
+                texts.forEach(text => {
+                    // Format the date in French
+                    const date = new Date(text.timestamp);
+                    const formattedDate = date.toLocaleDateString('fr-FR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    // Admin view: Only show title and date, no preview
+                    const textCard = `
+                        <div class="text-card">
+                            <div class="card-header">
+                                <div class="card-title">${text.title}</div>
+                                <div class="card-date">${formattedDate}</div>
+                            </div>
+                            <div class="card-actions">
+                                <button class="btn-icon delete-btn" data-id="${text.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    adminTextsList.innerHTML += textCard;
+                });
+                
+                // Add event listeners to delete buttons
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const textId = btn.dataset.id;
+                        deleteText(textId);
+                    });
+                });
+            });
+        }
+        
+        // Load texts for user
+        function loadUserTexts() {
+            const textsRef = database.ref('texts');
+            
+            textsRef.on('value', (snapshot) => {
+                userTextsList.innerHTML = '';
+                textDetail.style.display = 'none';
+                userTextsList.style.display = 'grid';
+                
+                if (!snapshot.exists()) {
+                    userTextsList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-file-medical"></i>
+                            <h3>Aucune conduite disponible</h3>
+                            <p>Veuillez revenir plus tard</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+                const texts = [];
+                snapshot.forEach((childSnapshot) => {
+                    const text = childSnapshot.val();
+                    text.id = childSnapshot.key;
+                    text.isFavorite = favorites.includes(text.id);
+                    texts.push(text);
+                });
+                
+                // Apply sorting by newest first
+                texts.sort((a, b) => b.timestamp - a.timestamp);
+                
+                // Apply search filter
+                const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+                
+                // Apply favorites filter
+                const showOnlyFavorites = document.getElementById('showFavoritesOnly').checked;
+                
+                const filteredTexts = texts.filter(text => {
+                    const matchesSearch = text.title.toLowerCase().includes(searchTerm) || 
+                           text.content.toLowerCase().includes(searchTerm);
+                    const matchesFavorite = !showOnlyFavorites || text.isFavorite;
+                    return matchesSearch && matchesFavorite;
+                });
+                
+                if (filteredTexts.length === 0) {
+                    userTextsList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-search"></i>
+                            <h3>Aucun résultat trouvé</h3>
+                            <p>Essayez de modifier vos termes de recherche</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                filteredTexts.forEach(text => {
+                    // Format the date in French
+                    const date = new Date(text.timestamp);
+                    const formattedDate = date.toLocaleDateString('fr-FR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    const starIconClass = text.isFavorite ? 'fas' : 'far';
+                    
+                    const textCard = `
+                        <div class="text-card">
+                            <div class="card-header" data-id="${text.id}">
+                                <div class="card-title">${text.title}</div>
+                                <div class="card-header-right">
+                                    <div class="card-date">${formattedDate}</div>
+                                    <button class="btn-icon favorite-btn ${text.isFavorite ? 'favorite' : ''}" data-id="${text.id}">
+                                        <i class="${starIconClass} fa-star"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    userTextsList.innerHTML += textCard;
+                });
+                
+                // Add event listeners to show text content
+                document.querySelectorAll('.card-header').forEach(header => {
+                    header.addEventListener('click', (e) => {
+                        // Prevent triggering when clicking on the favorite button
+                        if (e.target.closest('.favorite-btn')) {
+                            return;
+                        }
+                        
+                        const textId = header.dataset.id;
+                        const text = texts.find(t => t.id === textId);
+                        
+                        if (text) {
+                            // Format the date again for detail view
+                            const date = new Date(text.timestamp);
+                            const formattedDate = date.toLocaleDateString('fr-FR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                            
+                            detailTitle.textContent = text.title;
+                            detailDate.textContent = formattedDate;
+                            detailContent.innerHTML = text.content.replace(/\n/g, '<br>');
+                            
+                            // Hide list and show detail
+                            userTextsList.style.display = 'none';
+                            textDetail.style.display = 'block';
+                            
+                            // Scroll to top of detail section
+                            textDetail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    });
+                });
+                
+                // Add event listeners to favorite buttons
+                document.querySelectorAll('.favorite-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const textId = btn.dataset.id;
+                        const isFavorite = toggleFavorite(textId);
+                        
+                        // Update button appearance
+                        const icon = btn.querySelector('i');
+                        if (isFavorite) {
+                            icon.classList.remove('far');
+                            icon.classList.add('fas');
+                            btn.classList.add('favorite');
+                            showNotification('Ajouté aux favoris');
+                        } else {
+                            icon.classList.remove('fas');
+                            icon.classList.add('far');
+                            btn.classList.remove('favorite');
+                            showNotification('Retiré des favoris');
+                        }
+                        
+                        // If we're showing only favorites, reload the list
+                        if (document.getElementById('showFavoritesOnly').checked) {
+                            loadUserTexts();
+                        }
+                    });
+                });
+            });
+        }
+        
+        // Delete text function
+        function deleteText(textId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette conduite ?')) {
+                // Remove from favorites if needed
+                const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+                const index = favorites.indexOf(textId);
+                if (index > -1) {
+                    favorites.splice(index, 1);
+                    localStorage.setItem('favorites', JSON.stringify(favorites));
+                }
+                
+                // Remove from database
+                database.ref('texts/' + textId).remove()
+                    .then(() => {
+                        showNotification('Conduite supprimée avec succès');
+                    })
+                    .catch((error) => {
+                        showNotification('Erreur lors de la suppression: ' + error.message, false);
+                    });
+            }
+        }
+        
+        // Back to list button
+        backToList.addEventListener('click', () => {
+            textDetail.style.display = 'none';
+            userTextsList.style.display = 'grid';
+            
+            // Scroll back to top of list
+            userTextsList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        
+        // Search functionality for user
+        document.getElementById('userSearch').addEventListener('input', loadUserTexts);
+        document.getElementById('searchBtn').addEventListener('click', loadUserTexts);
+        
+        // Favorites filter toggle
+        showFavoritesOnly.addEventListener('change', loadUserTexts);
+        
+        // Search functionality for admin
+        document.getElementById('adminSearch').addEventListener('input', () => {
+            const searchTerm = document.getElementById('adminSearch').value.toLowerCase();
+            
+            const textsRef = database.ref('texts');
+            
+            textsRef.on('value', (snapshot) => {
+                adminTextsList.innerHTML = '';
+                
+                if (!snapshot.exists()) {
+                    adminTextsList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-file-medical"></i>
+                            <h3>Aucune conduite disponible</h3>
+                            <p>Ajoutez de nouvelles conduites en utilisant le formulaire ci-dessus</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const texts = [];
+                snapshot.forEach((childSnapshot) => {
+                    const text = childSnapshot.val();
+                    text.id = childSnapshot.key;
+                    texts.push(text);
+                });
+                
+                // Apply search filter
+                const filteredTexts = texts.filter(text => {
+                    return text.title.toLowerCase().includes(searchTerm);
+                });
+                
+                if (filteredTexts.length === 0) {
+                    adminTextsList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-search"></i>
+                            <h3>Aucun résultat trouvé</h3>
+                            <p>Essayez de modifier vos termes de recherche</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                filteredTexts.forEach(text => {
+                    // Format the date in French
+                    const date = new Date(text.timestamp);
+                    const formattedDate = date.toLocaleDateString('fr-FR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    // Admin view: Only show title and date, no preview
+                    const textCard = `
+                        <div class="text-card">
+                            <div class="card-header">
+                                <div class="card-title">${text.title}</div>
+                                <div class="card-date">${formattedDate}</div>
+                            </div>
+                            <div class="card-actions">
+                                <button class="btn-icon delete-btn" data-id="${text.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    adminTextsList.innerHTML += textCard;
+                });
+                
+                // Add event listeners to delete buttons
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const textId = btn.dataset.id;
+                        deleteText(textId);
+                    });
+                });
+            });
+        });
+        
+        document.getElementById('adminSearchBtn').addEventListener('click', () => {
+            document.getElementById('adminSearch').dispatchEvent(new Event('input'));
+        });
+        
+        // Initialize the app
+        function initApp() {
+            loadAdminTexts();
+            loadUserTexts();
+        }
+        
+        // Start the app when the page loads
+        window.addEventListener('load', initApp);
+    </script>
+</body>
+</html>
